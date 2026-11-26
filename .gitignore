@@ -1,0 +1,14 @@
+# artefatos de build
+.zig-cache/
+zig-out/
+zigcalc
+zigcalc.o
+kernel/*.o
+kernel/*.ko
+kernel/*.mod
+kernel/*.mod.c
+kernel/.*.cmd
+kernel/.module-common.o
+kernel/.zig-cache/
+kernel/Module.symvers
+kernel/modules.order

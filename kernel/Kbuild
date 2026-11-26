@@ -1,0 +1,32 @@
+# Kbuild do modulo zigcalc.ko
+#
+# O Kbuild le este arquivo (em vez de um Makefile) quando o modulo e
+# construido com:  make -C <headers do kernel> M=$(pwd)/kernel modules
+#
+# zigcalc.ko = zigcalc_glue.o (C: registro do cdev + ioctl + copy_*_user)
+#            + zigcalc_math.o (Zig: as quatro operacoes aritmeticas)
+
+obj-m += zigcalc.o
+
+zigcalc-y := zigcalc_glue.o zigcalc_math.o
+
+# zigcalc_math.o nao tem um .c correspondente: avisa o Kbuild que ele e
+# gerado por uma regra propria (necessario para o if_changed funcionar).
+targets += zigcalc_math.o
+
+ZIG ?= zig
+
+# Flags para gerar codigo objeto utilizavel dentro do kernel x86_64:
+#  -O ReleaseFast        sem verificacoes de seguranca que chamam o runtime
+#                        de panic do Zig (simbolos que nao existem no kernel)
+#  -mcmodel=kernel       mesmo code model usado pelo kernel/modulos
+#  -mno-red-zone         o kernel nao pode usar a red zone (interrupcoes)
+#  -fno-unwind-tables    sem .eh_frame (o kernel usa ORC)
+#  -fno-stack-protector  nao depende de simbolos de libc/compiler-rt
+#  -fstrip               sem informacoes de debug
+#  -fno-PIC              codigo nao-PIC, como o restante do kernel
+quiet_cmd_zig = ZIG     $@
+      cmd_zig = $(ZIG) build-obj $(src)/zigcalc.zig -O ReleaseFast -mcmodel=kernel -mno-red-zone -fno-unwind-tables -fno-stack-protector -fstrip -fno-PIC -femit-bin=$@
+
+$(obj)/zigcalc_math.o: $(src)/zigcalc.zig FORCE
+	$(call if_changed,zig)
